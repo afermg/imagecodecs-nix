@@ -93,18 +93,8 @@ let
             flit
           ];
           propagatedBuildInputs = with super; [
-            absl-py
-            etils
-            jax
-            jaxlib
-            msgpack
-            nest-asyncio
             numpy
             pyyaml
-            protobuf
-            py
-            tensorstore
-            typing-extensions
           ];
         };
 
@@ -119,9 +109,7 @@ let
 in
 python.withPackages (p: with p; [
   imagecodecs
-  lmdb
   numcodecs
   numpy
-  opencv4
   zarr
 ])
