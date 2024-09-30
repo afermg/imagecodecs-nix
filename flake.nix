@@ -7,9 +7,9 @@
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
         inherit system;
-        allowUnfree = true;
+        # allowUnfree = true;
         # cudaSupport = system == "x86_64-linux";
-        cudaSupport = true;
+        # cudaSupport = true;
       };
       # python = import ./default.nix { inherit pkgs; };
       # buildApptainer = import ./apptainer.nix;
