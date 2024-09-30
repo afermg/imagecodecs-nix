@@ -1,10 +1,4 @@
-{ pkgs ? import <nixpkgs> {
-    config = {
-      allowUnfree = true;
-      cudaSupport = builtins.currentSystem == "x86_64-linux";
-    };
-  }
-}:
+{ pkgs ? import <nixpkgs> { } }:
 
 let
   libheif-new = pkgs.libheif.overrideAttrs (old: rec {
@@ -76,6 +70,7 @@ let
           propagatedBuildInputs = with super; [
             py
             setuptools
+            numpy
             numcodecs
           ];
         };
@@ -87,6 +82,10 @@ in
 python.withPackages (p: with p; [
   imagecodecs
   numcodecs
-  numpy
   zarr
+  pylzma
+  pathos
+  
+  # dev
+  python-lsp-ruff
 ])
