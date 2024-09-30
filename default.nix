@@ -80,30 +80,7 @@ let
           ];
         };
 
-      orbax-checkpoint =
-        super.buildPythonPackage rec {
-          pname = "orbax_checkpoint";
-          version = "0.5.3";
-          pyproject = true;
-          src = super.fetchPypi {
-            inherit pname version;
-            hash = "sha256-FXKQTLv+hROSfg2A+AtzDg7y9oAzLTwoENhENTKTi0U=";
-          };
-          nativeBuildInputs = with super; [
-            flit
-          ];
-          propagatedBuildInputs = with super; [
-            numpy
-            pyyaml
-          ];
-        };
-
-      flax = super.flax.overridePythonAttrs (old: {
-        doCheck = false;
-        propagatedBuildInputs =
-          old.propagatedBuildInputs ++ [ self.orbax-checkpoint ];
-      });
-    };
+   };
   };
 
 in
