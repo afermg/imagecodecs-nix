@@ -1,59 +1,127 @@
-# { lib
-# , python3Packages
-# , fetchPypi
-# }:
-with import <nixpkgs>{};
-with pkgs.python3Packages;
-(let
-  hash = "sha256-duhFk4x8qtE75tXJUP9seIUoLjDPzewjPHSH3NbHO6w=";
-  imagecodecs = python3Packages.buildPythonPackage rec {
-  pname = "imagecodecs";
-  version = "3efbf73fdbada9def98d7eada9e9a4ccb985ba69";
+{ pkgs ? import <nixpkgs> {
+    config = {
+      allowUnfree = true;
+      cudaSupport = builtins.currentSystem == "x86_64-linux";
+    };
+  }
+}:
 
-  # src = fetchPypi {
-  #   inherit pname version;
-  #   hash  = "sha256-/qCAG0AI0l6XGRjZkTl6NRu+dids+pju0t5Uy4folKM=";
-  # };
-  src = fetchFromGitHub {
-    owner = "afermg";
-    repo = "imagecodecs";
-    rev = "${version}";
-    hash  = "${hash}";
+let
+  libheif-new = pkgs.libheif.overrideAttrs (old: rec {
+    version = "1.17.6";
+    src = pkgs.fetchFromGitHub {
+      owner = "strukturag";
+      repo = "libheif";
+      rev = "v${version}";
+      sha256 = "sha256-pp+PjV/pfExLqzFE61mxliOtVAYOePh1+i1pwZxDLAM=";
+    };
+    nativeBuildInputs = [ pkgs.cmake pkgs.pkg-config ];
+  });
+
+  libjxl-new = pkgs.libjxl.overrideAttrs (old: rec {
+    version = "0.9.2";
+    src = pkgs.fetchFromGitHub {
+      owner = "libjxl";
+      repo = "libjxl";
+      rev = "v${version}";
+      sha256 = "sha256-t5cuuvqGC3os49lhV8hixCn6xqCoDppPC7nwf3f8Rkw=";
+      fetchSubmodules = true;
+    };
+    patches = [ ];
+  });
+
+
+  python = pkgs.python3.override {
+    packageOverrides = self: super: {
+      imagecodecs =
+        super.buildPythonPackage rec {
+          pname = "imagecodecs";
+          version = "2024.1.1";
+          format = "setuptools";
+          src = super.fetchPypi {
+            inherit pname version;
+            hash = "sha256-/eRr1pjQCCVd7vVBHFmzXA6HUpXoNb9geffiqyLyFus=";
+          };
+          patches = [ ./imagecodecs-deps-nix.patch ];
+          patchFlags = [ "--binary" ];
+          doCheck = false;
+          nativeBuildInputs = [
+            pkgs.pkg-config
+            super.cython
+            super.pip
+          ];
+          buildInputs = with pkgs; [
+            brotli
+            brunsli
+            bzip2
+            c-blosc
+            charls
+            giflib
+            jxrlib
+            lcms
+            libaec
+            libdeflate
+            libheif-new
+            libjxl-new
+            libpng
+            libtiff
+            libwebp
+            lz4
+            snappy
+            xz
+            zlib
+            zopfli
+            zstd
+          ];
+          propagatedBuildInputs = with super; [
+            py
+            setuptools
+            numcodecs
+          ];
+        };
+
+      orbax-checkpoint =
+        super.buildPythonPackage rec {
+          pname = "orbax_checkpoint";
+          version = "0.5.3";
+          pyproject = true;
+          src = super.fetchPypi {
+            inherit pname version;
+            hash = "sha256-FXKQTLv+hROSfg2A+AtzDg7y9oAzLTwoENhENTKTi0U=";
+          };
+          nativeBuildInputs = with super; [
+            flit
+          ];
+          propagatedBuildInputs = with super; [
+            absl-py
+            etils
+            jax
+            jaxlib
+            msgpack
+            nest-asyncio
+            numpy
+            pyyaml
+            protobuf
+            py
+            tensorstore
+            typing-extensions
+          ];
+        };
+
+      flax = super.flax.overridePythonAttrs (old: {
+        doCheck = false;
+        propagatedBuildInputs =
+          old.propagatedBuildInputs ++ [ self.orbax-checkpoint ];
+      });
+    };
   };
 
-  build-system = with python3Packages; [
-    setuptools
-  ];
-
-  nativeBuildInputs = [
-    cython
-    # openjpeg # this is not detected, removed from my fork
-    # jxrlib # not detected
-    # lz4
-  ];
-  # preConfigure = ''
-  #   export CFLAGS="-I${lz4}/include"
-  #   export CPPFLAGS="-I${lz4}/include"
-  # '';
-  nativeCheckInputs =  [ pytest ];
-  propagatedBuildInputs = [
-    numpy
-    lcms
-    lerc
-    # lz4
-    # brotli
-  ];
-  # dependencies = with python3Packages; [
-  #   tornado
-  #   python-daemon
-  # ];
-
-  doCheck = "false";
-  meta = {
-    # ...
-  };
-};
-in python3.buildEnv.override rec {
-  extraLibs = [imagecodecs];
-}
-)
+in
+python.withPackages (p: with p; [
+  imagecodecs
+  lmdb
+  numcodecs
+  numpy
+  opencv4
+  zarr
+])
